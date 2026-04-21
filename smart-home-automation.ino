@@ -1,0 +1,80 @@
+#define BLYNK_TEMPLATE_ID "TMPL6BnP1NBzw"
+#define BLYNK_TEMPLATE_NAME "Light Automation"
+#define BLYNK_AUTH_TOKEN "Hydy1XMNX5H1mwt8V8OPxXNL7Od8DnhU"
+
+#define BLYNK_PRINT Serial
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "AGLapy";
+char pass[] = "123454321";
+
+#define RELAY D1
+#define LDR_SENSOR D2
+#define BUZZER D5
+
+bool manualMode = false;
+int lastState = -1;
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(RELAY, OUTPUT);
+  pinMode(LDR_SENSOR, INPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  digitalWrite(RELAY, HIGH);
+  digitalWrite(BUZZER, LOW);
+
+  Blynk.begin(auth, ssid, pass);
+}
+
+// LED Button (only in manual mode)
+BLYNK_WRITE(V0) {
+  if (manualMode) {
+    int val = param.asInt();
+
+    if (val == 1)
+      digitalWrite(RELAY, LOW);
+    else
+      digitalWrite(RELAY, HIGH);
+  }
+}
+
+// Mode Switch
+BLYNK_WRITE(V1) {
+  manualMode = param.asInt();
+}
+
+// Beep function
+void beepOnce() {
+  digitalWrite(BUZZER, HIGH);
+  delay(200);
+  digitalWrite(BUZZER, LOW);
+}
+
+void loop() {
+  Blynk.run();
+
+  // AUTO MODE
+  if (!manualMode) {
+    int sensorValue = digitalRead(LDR_SENSOR);
+    int currentState;
+
+    if (sensorValue == HIGH) {
+      currentState = 1; // DARK
+      digitalWrite(RELAY, LOW);
+    } else {
+      currentState = 0; // LIGHT
+      digitalWrite(RELAY, HIGH);
+    }
+
+    // beep only on change
+    if (currentState != lastState) {
+      beepOnce();
+      lastState = currentState;
+    }
+  }
+}
